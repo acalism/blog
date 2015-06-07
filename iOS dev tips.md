@@ -18,17 +18,15 @@ self.window.rootViewController = self.viewController;
 * 保存照片至系统相册  
 ```
 UIImageWriteToSavedPhotosAlbum(UIImage *image,  id completionTarget, SEL completionSelector,  void *contextInfo);
-
 ```
 或者
-```ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
-
-    [library writeImageToSavedPhotosAlbum:[image CGImage] orientation:(ALAssetOrientation)[image imageOrientation] completionBlock:^(NSURL *assetURL, NSError *error){
+```
+ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
+[library writeImageToSavedPhotosAlbum:[image CGImage] orientation:(ALAssetOrientation)[image imageOrientation] completionBlock:^(NSURL *assetURL, NSError *error){
     if (error) {
-    // TODO: error handling
+      // TODO: error handling
     } else {
-    // TODO: success handling
+      // TODO: success handling
     }
 }];
-
 ```
