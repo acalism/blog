@@ -14,7 +14,7 @@ self.viewController = [ViewController new];
 self.window.rootViewController = self.viewController;
 [self.window makeKeyAndVisible];
 ```
-<<<<<<< HEAD
+
 * Xcode升级后插件失效的问题
 ```
 XCODEUUID=`defaults read /Applications/Xcode.app/Contents/Info DVTPlugInCompatibilityUUID`
@@ -22,7 +22,7 @@ for f in ~/Library/Application\ Support/Developer/Shared/Xcode/Plug-ins/*; do de
 ```
 以下是来源：
 http://stackoverflow.com/questions/20732327/xcode-5-required-plug-in-not-present-in-dvtplugincompatibilityuuids
-=======
+
 
 * 保存照片至系统相册  
 ```
@@ -39,4 +39,3 @@ ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
     }
 }];
 ```
->>>>>>> FETCH_HEAD
