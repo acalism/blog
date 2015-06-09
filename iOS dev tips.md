@@ -1,4 +1,4 @@
-### 以下收集一些很有用小技巧
+### 以下收集一些很有用小技巧（持续更新中）
 
 * 打开一些旧项目时，运行后上下出现黑块。  
   原因：缺少大屏对应的LaunchImage，此时`[UIScreen mainScreen].bounds`的结果也是不正确的。  
@@ -14,3 +14,10 @@ self.viewController = [ViewController new];
 self.window.rootViewController = self.viewController;
 [self.window makeKeyAndVisible];
 ```
+* Xcode升级后插件失效的问题
+```
+XCODEUUID=`defaults read /Applications/Xcode.app/Contents/Info DVTPlugInCompatibilityUUID`
+for f in ~/Library/Application\ Support/Developer/Shared/Xcode/Plug-ins/*; do defaults write "$f/Contents/Info" DVTPlugInCompatibilityUUIDs -array-add $XCODEUUID; done
+```
+以下是来源：
+http://stackoverflow.com/questions/20732327/xcode-5-required-plug-in-not-present-in-dvtplugincompatibilityuuids
