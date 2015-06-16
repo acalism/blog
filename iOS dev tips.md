@@ -39,3 +39,20 @@ ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
     }
 }];
 ```
+
+* NULL/Nil/nil/NSNull [来源](http://nshipster.cn/nil/)  
+| 标志 |	值 |	含义 |  
+|--- |: --- :| --- |  
+|NULL |	(void \*)0 |	C指针的字面零值|  
+|nil |	(id)0 |	Objective-C对象的字面零值|  
+|Nil |	(Class)0 |	Objective-C类的字面零值|  
+|NSNull |	[NSNull null] |	用来表示零值的单独的对象|  
+
+
+
+* UiWebView debug  
+http://stackoverflow.com/questions/2767902/what-are-some-methods-to-debug-javascript-inside-of-a-uiwebview
+
+* Xcode常用快捷键  
+^ + ⌘ + Y,  ⌘ + Y, ^ + ⌘ + arrow, ^ + ⌘ + E, ⌘ + ⌥ + J, ⌘ + ⌥ + L,  
+http://spin.atomicobject.com/2014/03/23/xcode-keyboard-shortcuts/
