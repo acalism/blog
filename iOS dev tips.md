@@ -41,8 +41,9 @@ ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
 ```
 
 * NULL/Nil/nil/NSNull [来源](http://nshipster.cn/nil/)  
+
 | 标志 |	值 |	含义 |  
-|--- |: --- :| --- |  
+|---|---:|:---:|  
 |NULL |	(void \*)0 |	C指针的字面零值|  
 |nil |	(id)0 |	Objective-C对象的字面零值|  
 |Nil |	(Class)0 |	Objective-C类的字面零值|  
