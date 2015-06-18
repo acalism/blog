@@ -65,4 +65,5 @@ http://spin.atomicobject.com/2014/03/23/xcode-keyboard-shortcuts/
 9. CFBundleVersion与CFBundleShortVersionString  
    前者对应工程设置里显示的Build，后者对应Version，AppStore用的是Build，而用户看到的是Version，因为后者可以本地化显示，比如罗马数字，希伯来数字
    [参考](http://beginor.github.io/2014/07/22/ios-cfbundleshortversionstring-vs-cfbundleversion.html)
-10. 
+10. XCTest
+https://developer.apple.com/library/ios/documentation/DeveloperTools/Conceptual/testing_with_xcode/testing_1_quick_start/testing_1_quick_start.html
