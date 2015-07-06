@@ -143,41 +143,41 @@ dispatch_group_notify(group1, waitQueue, ^{ // 阻塞waitQueue
 });
 ```
 
-5. 吃独食（徒儿们长相太寒碜，徒弟吃的时候，我不上桌，还没上桌的也等着；我吃的时候，还没吃的徒弟先候着）
-几个徒弟的看相，实在不敢恭维，想想师傅不情愿在饭桌上见到徒弟们，也是可以理解的啊（不要喷我啊，我只是这么假想了一下下而已）。
-注：***本为读写锁问题(读为并发，而写为独占)***
+5. 吃独食（徒儿们长相太寒碜，徒弟吃的时候，我不上桌，还没上桌的也等着；我吃的时候，还没吃的徒弟先候着）  
+几个徒弟的看相，实在不敢恭维，想想师傅不情愿在饭桌上见到徒弟们，也是可以理解的啊（不要喷我啊，我只是这么假想了一下下而已）。  
+***注：本为读写锁问题(读为并发，而写为独占)***  
 ```
 @interface MyDemoClass : NSObject
 @property (strong, nonatomic) NSMutableArray *books;
 @property (strong, nonatomic) dispatch_queue_t queue;
-- (NSString *)bookAtIndex:(NSUInteger)index; //!< 读
-- (void)insertBook:(NSString *)object atIndex:(NSUInteger)index; //!< 写（插入）
-- (void)addBook:(NSString *)object; //!< 写（追加）
+ - (NSString *)bookAtIndex:(NSUInteger)index; //!< 读
+ - (void)insertBook:(NSString *)object atIndex:(NSUInteger)index; //!< 写（插入）
+ - (void)addBook:(NSString *)object; //!< 写（追加）
 @end
-
+//
 @implementation MyDemoClass
-- (instancetype)init {
+ - (instancetype)init {
     self = [super init];
     if (self) {
         _queue = dispatch_queue_create("com.tencent.byod.concurrentQueue.MyDemoClass", DISPATCH_QUEUE_CONCURRENT);
     }
     return self;
 }
-- (NSString *)bookAtIndex:(NSUInteger)index {
+ - (NSString *)bookAtIndex:(NSUInteger)index {
     __block NSString * book;
     dispatch_sync(_queue, ^{ // 并发读，阻塞当前线程（要返回读出的数据啊）
         book = _books[index];
     });
     return book;
 }
-- (void)insertBook:(NSString *)object atIndex:(NSUInteger)index {
+ - (void)insertBook:(NSString *)object atIndex:(NSUInteger)index {
     // 不必阻塞当前线程，故用async。
     // 这儿的barrier可以理解为，平时多车道并行不悖，但外国政要经过时要进行交通管制（barrier很贴切吧），暂变成单车道；政要们经过后，又变回多车道。
     dispatch_barrier_async(_queue, ^{
         _books[index] = object;
     });
 }
-- (void)addBook:(NSString *)object {
+ - (void)addBook:(NSString *)object {
   // 追加同insert，亦是独占式操作。
     dispatch_barrier_async(_queue, ^{
         [_books addObject:object];
@@ -185,7 +185,6 @@ dispatch_group_notify(group1, waitQueue, ^{ // 阻塞waitQueue
 }
 @end
 ```
-
 6. 师兄弟分头找师傅（唐僧）
 师傅又被妖怪抓走了（你懂的），云深不知处，只在此3山。于是3个徒弟各找一片山区，誓要把师傅找到，且看徒弟们怎么找师傅，
 ```
