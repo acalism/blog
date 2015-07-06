@@ -1,12 +1,14 @@
-#戏说GCD
-    众所周知，iOS开发离不开多线程，在某些场合涉及比较复杂的多线程技巧。现在我想列几个假想的问题：  
-1. 等会儿再行动。
-2. 我走了，再见！
-3. 我走了，你等我回来！
-4. 分头行动，在A地集合。
-5. 吃独食（你们吃的时候，我等着；我吃的时候，你们等着）。
+#大话西游之GCD的法术
+    话说唐僧自得观音菩萨指点，又得大唐皇帝赐酒祝福，骑着马，拿着禅杖，就踏上了漫漫取经路！路行十万八千里，历经九九八十一难，终于取得真经。
+    八零后和九零后的小朋友听完这个故事，也都心潮澎湃。好，咱们今天就用iOS的GCD大法，来模拟一下唐僧师傅一路上可能遇到的困难。
+    小可拍脑门一想，觉得很可能会碰到如下场景或困难（排名不分先后，仅依难易程度排列）：  
+1. 歇一宿再走。
+2. （师傅太啰嗦）俺老孙去也！
+3. 师傅在此稍候，俺老孙去去便回！
+4. 咱们分头行动（师傅坐船，我腾云），在河对岸集合。
+5. 吃独食（徒儿们长相太寒碜，徒弟吃的时候，我不上桌，还没上桌的也等着；我吃的时候，还没吃的徒弟先候着）。
 6. 师兄弟分头找师傅（唐僧）。
-7. 车满就出发。
+7. 我就招三个徒弟，先完成比赛的先录用，招满就踏上取经路。
 
 本文的主要目标就是阐述上述几个问题的解决办法和处理技巧，如果觉得只是小case的，那我就不浪费你的时间了啊。
 以上几个问题在实际项目中应该都不鲜见，至少1~6我都碰到过，第7个是假想的问题，但肯定会碰上的。
@@ -24,7 +26,7 @@ Grand Central Dispatch（GCD）分发队列(dispatch queue)是执行任务的强
 | 串行(Serial)    | (单向)单车道（同一时刻只执行一个任务，执行完一个才执行下一个），单个线程的管理者 |  
 | 并发(Concurrent)| (单向)多车道（可以同时执行多个任务，但仍按提交顺序启动），多个线程的管理者 |  
 | 主分发队列(Main) | 特殊的串行队列，主线程的管理者 |  
-这里需要说明的是，主分发队列确实值得拿出来作为一个单独的类型，NSThread、分发队列 和 操作队列，这三者仅在主队列上是相互兼容的，即代码可相互嵌套。
+这里需要说明的是，主分发队列确实值得拿出来作为一个单独的类型，NSThread、分发队列 和 操作队列，这三者仅在主队列上是相互兼容的（可以认为是同一实体），下面的代码反映这种兼容性。
 ```
 // 可以认为下述三个方法得到的是同一个线程，或者说是对同一个线程的封装。
 [NSThread mainThread];
@@ -50,24 +52,29 @@ dispatch_queue_t serialQueue = dispatch_queue_create("com.tencent.byod.module1.s
 dispatch_queue_t concurrentQueue = dispatch_queue_create("com.tencent.byod.module1.concurrentQueue.0", DISPATCH_QUEUE_CONCURRENT);
 dispatch_queue_t concurrentQueue1 = dispatch_queue_create("com.tencent.byod.module1.concurrentQueue.1", DISPATCH_QUEUE_CONCURRENT); // 预定义的并发队列
 dispatch_queue_t globalQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-dispatch_queue_t mainQueue = dispatch_get_main_queue(); 
+dispatch_queue_t mainQueue = dispatch_get_main_queue();
 
 ```
-1. 等会儿再行动
+
+1. 歇一宿再走
+唐僧一人一马，日近黄昏，人困马乏，“日暮苍山远，天寒白屋贫”（胡诌的），为师决定歇一宿再走，
 ```
 // 延迟0.5秒再执行
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), serialQueue, ^{
     // code to be executed in serialQueue after a specified delay
 });
 ```
-2. 我走了，再见！  
+
+2. （师傅太啰嗦）俺老孙去也！  
+***顺便说下，下面api中带sync表示当前线程被阻塞，而async表示当前线程申通无阻，而block与queue的关系，则取决于queue本身是串行还是并发***
 ```
 // 单个异步任务
 dispatch_async(serialQueue, ^{
     // 要在queue上执行的代码
 });
-// 一次分发十个类似的异步任务，此处的queue若为串行，结果仍为顺序，  
-dispatch_apply(10, queue, ^(size_t i) {
+// 老孙能离开师傅，独我八戒沙僧不行？
+// n个异步任务，此处的queue若为串行，结果仍为顺序，否则为随机序，  
+dispatch_apply(10, queue, ^(size_t i) { // 阻塞当前线程
     NSLog(@"第%zd次执行", i);
 });
 // 如果queue为并发队列，可能的结果为：
@@ -82,7 +89,8 @@ dispatch_apply(10, queue, ^(size_t i) {
 // 第9次执行
 // 第8次执行
 ```
-3. 我走了，你等我回来！
+
+3. 师傅在此稍候，俺老孙去去便回！
 ```
 // 注意死锁问题：如果queue是串行队列，在queue里执行这段代码会导致死锁（互相等待）。
 // 解决办法也很简单：改用并发队列，或者在另一个队列里执行下面的代码，或者改用dispatch_async  
@@ -90,7 +98,8 @@ dispatch_sync(queue, ^{
     // 要在queue上执行的代码
 });
 ```
-4. 分头行动，在A地集合！
+
+4. 咱们分头行动（师傅坐船，我腾云），在河对岸集合！
 ```
 // 用任务组来完成
 dispatch_group_t group = dispatch_group_create();
@@ -127,20 +136,23 @@ dispatch_group_notify(group1, mainQueue, ^{
 ```
 需要注意的是，dispatch_group_notify会阻塞其指定的serial queue，可以指定一个专门的waitQueue来解决这个问题，
 ```
-dispatch_group_notify(group1, waitQueue, ^{
+dispatch_group_notify(group1, waitQueue, ^{ // 阻塞waitQueue
     dispatch_sync(mainQueue, ^{ // 主线程就不会阻塞了
         NSLog(@"报告老板：任务全部完成");
     });
 });
 ```
-5. 吃独食
+
+5. 吃独食（徒儿们长相太寒碜，徒弟吃的时候，我不上桌，还没上桌的也等着；我吃的时候，还没吃的徒弟先候着）
+几个徒弟的看相，实在不敢恭维，想想师傅不情愿在饭桌上见到徒弟们，也是可以理解的啊（不要喷我啊，我只是这么假想了一下下而已）。
+注：***本为读写锁问题(读为并发，而写为独占)***
 ```
 @interface MyDemoClass : NSObject
 @property (strong, nonatomic) NSMutableArray *books;
 @property (strong, nonatomic) dispatch_queue_t queue;
-- (NSString *)bookAtIndex:(NSUInteger)index;
-- (void)insertBook:(NSString *)object atIndex:(NSUInteger)index;
-- (void)addBook:(NSString *)object;
+- (NSString *)bookAtIndex:(NSUInteger)index; //!< 读
+- (void)insertBook:(NSString *)object atIndex:(NSUInteger)index; //!< 写（插入）
+- (void)addBook:(NSString *)object; //!< 写（追加）
 @end
 
 @implementation MyDemoClass
@@ -153,24 +165,29 @@ dispatch_group_notify(group1, waitQueue, ^{
 }
 - (NSString *)bookAtIndex:(NSUInteger)index {
     __block NSString * book;
-    dispatch_sync(_queue, ^{
+    dispatch_sync(_queue, ^{ // 并发读，阻塞当前线程（要返回读出的数据啊）
         book = _books[index];
     });
     return book;
 }
 - (void)insertBook:(NSString *)object atIndex:(NSUInteger)index {
+    // 不必阻塞当前线程，故用async。
+    // 这儿的barrier可以理解为，平时多车道并行不悖，但外国政要经过时要进行交通管制（barrier很贴切吧），暂变成单车道；政要们经过后，又变回多车道。
     dispatch_barrier_async(_queue, ^{
         _books[index] = object;
     });
 }
 - (void)addBook:(NSString *)object {
+  // 追加同insert，亦是独占式操作。
     dispatch_barrier_async(_queue, ^{
         [_books addObject:object];
     });
 }
 @end
 ```
+
 6. 师兄弟分头找师傅（唐僧）
+师傅又被妖怪抓走了（你懂的），云深不知处，只在此3山。于是3个徒弟各找一片山区，誓要把师傅找到，且看徒弟们怎么找师傅，
 ```
 dispatch_async(serialQueue, ^{ // 为免阻塞主线程，另开一线程
     NSUInteger const count = 30000;
@@ -179,7 +196,7 @@ dispatch_async(serialQueue, ^{ // 为免阻塞主线程，另开一线程
         arr[i] = @(arc4random());
     }
     int tangseng = 1000; // 唐僧在此
-    //arr[1000] = @(tangseng);
+    //arr[1001] = @(tangseng);
     // 数据准备妥当。开始分派任务，
     __block BOOL found = false;
     __block NSInteger indexOfTangseng = -1;
@@ -189,15 +206,14 @@ dispatch_async(serialQueue, ^{ // 为免阻塞主线程，另开一线程
             NSUInteger countOfPart = count / 3;
             for (NSUInteger j = i * countOfPart; j < (i+1) * countOfPart; j++) {
                 if (found || tangseng == [arr[j] integerValue]) {
-                    dispatch_semaphore_signal(sema);
-                    if (!found) {
-                        indexOfTangseng = j;
+                    dispatch_semaphore_signal(sema); // 找到师傅，则发出信号，且标记found为yes，告知师兄弟们不要再找了。
+                    if (!found) { // 不曾有其他师兄弟找到
+                        indexOfTangseng = j;  // 记录唐僧的位置
                         found = true;
                     }
                     break;
                 }
             }
-            dispatch_group_leave(group2);
         });
     }
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
@@ -213,7 +229,7 @@ dispatch_async(serialQueue, ^{
         arr[i] = @(arc4random());
     }
     int tangseng = 1000; // 唐僧在此
-    // arr[1000] = @(tangseng);
+    // arr[1001] = @(tangseng);
     // 数据准备妥当。开始分派任务，
     __block BOOL found = false;
     __block NSInteger indexOfTangseng = -1;
@@ -225,7 +241,7 @@ dispatch_async(serialQueue, ^{
             NSUInteger countOfPart = count / 3;
             for (NSUInteger j = i * countOfPart; j < (i+1) * countOfPart; j++) {
                 if (found || tangseng == [arr[j] integerValue]) {
-                    dispatch_semaphore_signal(sema);
+                    dispatch_semaphore_signal(sema); // 找到师傅：撤退方案A，
                     if (!found) {
                         indexOfTangseng = j;
                         found = true;
@@ -237,17 +253,20 @@ dispatch_async(serialQueue, ^{
         });
     }
     dispatch_group_notify(group2, concurrentQueue, ^{
-        dispatch_semaphore_signal(sema);
+        dispatch_semaphore_signal(sema); // 未找到，撤退方案B
     });
-    //dispatch_semaphore_wait(sema, dispatch_time(DISPATCH_TIME_NOW, 5));
+    //dispatch_semaphore_wait(sema, dispatch_time(DISPATCH_TIME_NOW, 5)); // 如果限定搜山时长（从现在开始的5秒后），不然师傅要被煮熟吃掉啦
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
     NSLog(@"found: %@, %zd", found ? @"true" : @"false", indexOfTangseng);
 });
 ```
 妖怪下令，5秒之内没找到就吃了你师傅。
 可将上述DISPATCH_TIME_FOREVER改为dispatch_time(DISPATCH_TIME_NOW, 5)。
-7. 车满就出发。
+
+7. 我就招三个徒弟，先完成比赛的先录用，招满就踏上取经路。
+唐僧觉得取经路太坎坷，妖怪众多，需招3个徒弟方可。由于唐僧是大唐皇帝的弟弟（临行时加封的也算好不，要不然女儿国国王怎么会称为“御弟哥哥”呢），所以应聘者甚众，得想个选拔办法。于是唐僧宣布，凡参赛者，同时开跑10km，先到终点者录用，录满（3人）即结束比赛。模拟如下：
 ```
+// 记录全部结果的方案：
 // 8人来应聘，但只要3个徒弟
 size_t const countOfCandidate = 8;
 size_t const countOfStudents = 3;
@@ -263,6 +282,7 @@ for (int i = 0; i < countOfStudents; i++) { // 录取的徒弟
 ```
 上面的过程仍不够简洁，记录了全部参选人员的名次，事实上我只需要录用3个人。
 ```
+// 只记录前3名的方案：
 // 8人来应聘，但只要3个徒弟
 size_t const countOfCandidate = 8;
 size_t const countOfStudents = 3;
@@ -273,9 +293,9 @@ dispatch_apply(countOfCandidate, concurrentQueue, ^(size_t i) { // 每人一条�
     for (int j = 0; j < 10; j++) {
         dispatch_sync(concurrentQueue1, ^{ // 阻塞当前线程
             if (resultsOfRace.count < countOfStudents) {
-                NSLog(@"第%zu个选手跑第%d步", i, j+1);
+                NSLog(@"第%zu个选手跑第%d千米", i, j+1);
             } else {
-                stop = @(true); // 徒弟收完了，洗洗睡吧
+                stop = @(true); // 徒弟收满了，洗洗睡吧
             }
         });
         if (stop) {
