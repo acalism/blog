@@ -1,4 +1,4 @@
-#大话西游之一种名叫GCD的法术
+# 大话西游之一种名叫GCD的法术
     话说唐僧自得观音菩萨指点，又得大唐皇帝赐酒祝福，骑着马，拿着禅杖，就踏上了漫漫取经路！路行十万八千里，历经九九八十一难，终于取得真经。
     八零后和九零后的小朋友听完这个故事，也都心潮澎湃。好，咱们今天就用iOS的GCD大法，来模拟一下唐僧师傅一路上可能遇到的困难。
     小可拍脑门一想，觉得很可能会碰到如下场景或困难（排名不分先后，仅依难易程度排列）：  
@@ -27,7 +27,7 @@ Grand Central Dispatch（GCD）分发队列(dispatch queue)是执行任务的强
 | 并发(Concurrent)| (单向)多车道（可以同时执行多个任务，但仍按提交顺序启动），多个线程的管理者 |  
 | 主分发队列(Main) | 特殊的串行队列，主线程的管理者 |  
 这里需要说明的是，主分发队列确实值得拿出来作为一个单独的类型，NSThread、分发队列 和 操作队列，这三者仅在主队列上是相互兼容的（可以认为是同一实体），下面的代码反映这种兼容性。
-```
+```objc
 // 可以认为下述三个方法得到的是同一个线程，或者说是对同一个线程的封装。
 [NSThread mainThread];
 dispatch_get_main_queue();
@@ -46,7 +46,7 @@ dispatch_async(q0, ^{ // 若此处q0是自己create出来的队列，则下面�
 ```
 
  ** 0. 创建队列**
-```
+```objc
 // 这儿的队列名，强烈建议给有意义的名字，调试和分析崩溃日志时方便查看。
 dispatch_queue_t serialQueue = dispatch_queue_create("com.tencent.byod.module1.serialQueue.1", DISPATCH_QUEUE_SERIAL);
 dispatch_queue_t concurrentQueue = dispatch_queue_create("com.tencent.byod.module1.concurrentQueue.0", DISPATCH_QUEUE_CONCURRENT);
@@ -58,7 +58,7 @@ dispatch_queue_t mainQueue = dispatch_get_main_queue();
 
 1. 歇一宿再走  
 唐僧一人一马，日近黄昏，人困马乏，“日暮苍山远，天寒白屋贫”（胡诌的），为师决定歇一宿再走，
-```
+```objc
 // 延迟0.5秒再执行
 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), serialQueue, ^{
     // code to be executed in serialQueue after a specified delay
@@ -67,7 +67,7 @@ dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), 
 
 2. （师傅太啰嗦）俺老孙去也！  
 ***顺便说下，下面api中带sync表示当前线程被阻塞，而async表示当前线程申通无阻，而block与queue的关系，则取决于queue本身是串行还是并发***
-```
+```objc
 // 单个异步任务
 dispatch_async(serialQueue, ^{
     // 要在queue上执行的代码
@@ -91,7 +91,7 @@ dispatch_apply(10, queue, ^(size_t i) { // 阻塞当前线程
 ```
 
 3. 师傅在此稍候，俺老孙去去便回！
-```
+```objc
 // 注意***死锁问题***：如果queue是串行队列，在queue里执行这段代码会导致死锁（互相等待）。
 // 解决办法也很简单：改用并发队列，或者在另一个队列里执行下面的代码，或者改用dispatch_async  
 dispatch_sync(queue, ^{
@@ -100,7 +100,7 @@ dispatch_sync(queue, ^{
 ```
 
 4. 咱们分头行动（师傅坐船，我腾云），在河对岸集合！
-```
+```objc
 // 用任务组来完成
 dispatch_group_t group = dispatch_group_create();
 dispatch_group_async(group, concurrentQueue, ^{
@@ -113,11 +113,11 @@ dispatch_group_async(group, concurrentQueue, ^{
 });
 // 好了，在这儿集合吧
 dispatch_group_notify(group, mainQueue, ^{
-    NSLog(@"报告首长：子任务1和2完成");
+    NSLog(@"报告师父：子任务1和2完成");
 });
 ```
 如果要执行的任务本身就是一个涉及多线程的复杂任务呢？有更灵活的办法：
-```
+```objc
 // 更灵活的办法，
 dispatch_group_t group1 = dispatch_group_create();
 dispatch_group_enter(group1);
@@ -131,14 +131,14 @@ dispatch_async(globalQueue, ^{
     dispatch_group_leave(group1);
 });
 dispatch_group_notify(group1, mainQueue, ^{
-    NSLog(@"报告老板：任务全部完成");
+    NSLog(@"报告师父：任务全部完成");
 });
 ```
 需要注意的是，dispatch_group_notify会阻塞其指定的serial queue，可以指定一个专门的waitQueue来解决这个问题，
-```
+```objc
 dispatch_group_notify(group1, waitQueue, ^{ // 阻塞waitQueue
     dispatch_sync(mainQueue, ^{ // 主线程就不会阻塞了
-        NSLog(@"报告老板：任务全部完成");
+        NSLog(@"报告师父：任务全部完成");
     });
 });
 ```
@@ -187,7 +187,7 @@ dispatch_group_notify(group1, waitQueue, ^{ // 阻塞waitQueue
 ```
 6. 师兄弟分头找师傅（唐僧）  
 师傅又被妖怪抓走了（你懂的），云深不知处，只在此3山。于是3个徒弟各找一片山区，誓要把师傅找到，且看徒弟们怎么找师傅，
-```
+```objc
 dispatch_async(serialQueue, ^{ // 为免阻塞主线程，另开一线程
     NSUInteger const count = 30000;
     NSMutableArray *arr = [NSMutableArray arrayWithCapacity:count];
@@ -220,7 +220,7 @@ dispatch_async(serialQueue, ^{ // 为免阻塞主线程，另开一线程
 });
 ```
 还有点小问题，如果师傅不在这3片山头，如何是好？那上面的代码中的dispatch_semaphore_wait语句就是永久阻塞。这显然不是我们想要的结果。得结合上述第4个问题的答案，在查找完后给个信儿。
-```
+```objc
 dispatch_async(serialQueue, ^{
     NSUInteger const count = 3000;
     NSMutableArray *arr = [NSMutableArray arrayWithCapacity:count];
@@ -264,7 +264,7 @@ dispatch_async(serialQueue, ^{
 
 7. 我就招三个徒弟，先完成比赛的先录用，招满就踏上取经路。  
 唐僧觉得取经路太坎坷，妖怪众多，需招3个徒弟方可。由于唐僧是大唐皇帝的弟弟（临行时加封的也算好不，要不然女儿国国王怎么会称为“御弟哥哥”呢），所以应聘者甚众，得想个选拔办法。于是唐僧宣布，凡参赛者，同时开跑10km，先到终点者录用，录满（3人）即结束比赛。模拟如下：
-```
+```objc
 // 记录全部结果的方案：
 // 8人来应聘，但只要3个徒弟
 size_t const countOfCandidate = 8;
@@ -280,7 +280,7 @@ for (int i = 0; i < countOfStudents; i++) { // 录取的徒弟
 }
 ```
 上面的过程仍不够简洁，记录了全部参选人员的名次，事实上我只需要录用3个人。
-```
+```objc
 // 只记录前3名的方案：
 // 8人来应聘，但只要3个徒弟
 size_t const countOfCandidate = 8;
